@@ -764,12 +764,14 @@
                     const li = document.createElement('li');
                     const statusClass = player.online ? 'status-online' : 'status-offline';
                     const statusText = player.online ? 'ONLINE' : 'OFFLINE';
+                    const playtime = player.playtime || {hours: 0, minutes: 0};
+                    const playtimeStr = `${playtime.hours}h ${playtime.minutes}m`;
                     li.innerHTML = `
                         <div class="player-info">
                             <img class="player-avatar" src="https://mc-heads.net/avatar/${player.name}/40" alt="${player.name}">
                             <div>
                                 <div class="player-name">${player.name}</div>
-                                <div class="player-last-seen">Last seen: ${player.lastSeen || 'Unknown'}</div>
+                                <div class="player-last-seen">Playtime: ${playtimeStr} | Last seen: ${player.lastSeen || 'Unknown'}</div>
                             </div>
                         </div>
                         <div>
