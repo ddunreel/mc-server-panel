@@ -766,12 +766,20 @@
                     const statusText = player.online ? 'ONLINE' : 'OFFLINE';
                     const playtime = player.playtime || {hours: 0, minutes: 0};
                     const playtimeStr = `${playtime.hours}h ${playtime.minutes}m`;
+                    const kills = (player.player_kills || 0) + (player.mob_kills || 0);
+                    const deaths = player.deaths || 0;
+                    const kd = deaths > 0 ? (kills / deaths).toFixed(1) : kills;
                     li.innerHTML = `
                         <div class="player-info">
                             <img class="player-avatar" src="https://mc-heads.net/avatar/${player.name}/40" alt="${player.name}">
                             <div>
                                 <div class="player-name">${player.name}</div>
-                                <div class="player-last-seen">Playtime: ${playtimeStr} | Last seen: ${player.lastSeen || 'Unknown'}</div>
+                                <div class="player-last-seen">
+                                    <span style="color: #4ecca3;">Playtime: ${playtimeStr}</span> |
+                                    <span style="color: #3498db;">Kills: ${kills}</span> |
+                                    <span style="color: #e74c3c;">Deaths: ${deaths}</span> |
+                                    <span style="color: #f39c12;">K/D: ${kd}</span>
+                                </div>
                             </div>
                         </div>
                         <div>
