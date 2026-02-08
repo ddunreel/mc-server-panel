@@ -728,58 +728,31 @@
             // Get ban list
             const banlist = await fetchApi('/api/banlist');
             const banListEl = document.getElementById('banList');
-            if (banlist.response) {
-                const response = banlist.response;
-                if (response.toLowerCase().includes('no bans') || response.includes('0 ban')) {
+            if (banlist.bans && banlist.bans.length > 0) {
+                // New format: structured JSON from banned-players.json
+                banListEl.innerHTML = banlist.bans.map(ban => `
+                    <div class="ban-item">
+                        <div class="player-info">
+                            <img class="player-avatar" src="https://mc-heads.net/avatar/${ban.name}/40" alt="${ban.name}">
+                            <div>
+                                <div class="player-name">${ban.name}</div>
+                                <div style="font-size: 0.85em; color: #e74c3c;">${ban.reason || 'No reason'}</div>
+                            </div>
+                        </div>
+                        <button class="btn btn-success" onclick="quickUnban('${ban.name}')">Unban</button>
+                    </div>
+                `).join('');
+            } else if (banlist.bans && banlist.bans.length === 0) {
+                banListEl.innerHTML = '<div class="empty-state">No banned players</div>';
+            } else if (banlist.response) {
+                // Fallback: old RCON format
+                if (banlist.response.toLowerCase().includes('no bans')) {
                     banListEl.innerHTML = '<div class="empty-state">No banned players</div>';
-                } else if (response.includes('ban')) {
-                    // Extract everything after the colon following "ban(s)" or "bans"
-                    const colonIndex = response.indexOf(':');
-                    if (colonIndex > -1) {
-                        const bansPart = response.substring(colonIndex + 1).trim();
-                        if (bansPart) {
-                            // Bans are concatenated like: "Player1 was banned by X: ReasonPlayer2 was banned by Y: Reason"
-                            // Insert delimiter before each "PlayerName was banned" pattern
-                            const withDelimiter = bansPart.replace(/([A-Za-z0-9_]+)\s+was banned by/g, '|||$1 was banned by');
-                            const banStrings = withDelimiter.split('|||').filter(s => s.trim());
-
-                            const bans = banStrings.map(banStr => {
-                                const match = banStr.match(/^(\S+)\s+was banned by\s+([^:]+):\s*(.*)$/);
-                                if (match) {
-                                    return {
-                                        playerName: match[1],
-                                        bannedBy: match[2].trim(),
-                                        reason: match[3].trim() || 'No reason'
-                                    };
-                                }
-                                return null;
-                            }).filter(b => b);
-
-                            if (bans.length > 0) {
-                                banListEl.innerHTML = bans.map(ban => `
-                                    <div class="ban-item">
-                                        <div class="player-info">
-                                            <img class="player-avatar" src="https://mc-heads.net/avatar/${ban.playerName}/40" alt="${ban.playerName}">
-                                            <div>
-                                                <div class="player-name">${ban.playerName}</div>
-                                                <div style="font-size: 0.85em; color: #e74c3c;">${ban.reason}</div>
-                                            </div>
-                                        </div>
-                                        <button class="btn btn-success" onclick="quickUnban('${ban.playerName}')">Unban</button>
-                                    </div>
-                                `).join('');
-                            } else {
-                                banListEl.innerHTML = '<div class="empty-state">No banned players</div>';
-                            }
-                        } else {
-                            banListEl.innerHTML = '<div class="empty-state">No banned players</div>';
-                        }
-                    } else {
-                        banListEl.innerHTML = '<div class="empty-state">No banned players</div>';
-                    }
                 } else {
-                    banListEl.innerHTML = '<div class="empty-state">No banned players</div>';
+                    banListEl.innerHTML = `<div class="empty-state">${banlist.response}</div>`;
                 }
+            } else {
+                banListEl.innerHTML = '<div class="empty-state">No banned players</div>';
             }
 
             // Get all players who ever joined
