@@ -198,6 +198,81 @@
             font-size: 0.8em;
             color: #666;
         }
+        .dimension-badge {
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 0.7em;
+            font-weight: bold;
+            margin-left: 8px;
+        }
+        .dim-overworld {
+            background: #4ecca3;
+            color: #1a1a2e;
+        }
+        .dim-nether {
+            background: #e74c3c;
+            color: white;
+        }
+        .dim-end {
+            background: #9b59b6;
+            color: white;
+        }
+        .minimap-container {
+            position: relative;
+            width: 100%;
+            height: 300px;
+            background: #1a1a2e;
+            border-radius: 10px;
+            overflow: hidden;
+        }
+        .minimap-canvas {
+            width: 100%;
+            height: 100%;
+        }
+        .minimap-legend {
+            position: absolute;
+            bottom: 10px;
+            left: 10px;
+            display: flex;
+            gap: 15px;
+            font-size: 0.8em;
+        }
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+        .legend-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+        }
+        .minimap-tabs {
+            display: flex;
+            gap: 5px;
+            margin-bottom: 10px;
+        }
+        .minimap-tab {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            background: rgba(255,255,255,0.1);
+            color: white;
+            transition: all 0.3s;
+        }
+        .minimap-tab.active {
+            background: #4ecca3;
+            color: #1a1a2e;
+        }
+        .minimap-tab.nether.active {
+            background: #e74c3c;
+            color: white;
+        }
+        .minimap-tab.end.active {
+            background: #9b59b6;
+            color: white;
+        }
         .config-section {
             background: rgba(255,255,255,0.03);
             padding: 20px;
@@ -352,6 +427,22 @@
             </div>
 
             <div class="card" style="grid-column: span 2;">
+                <h2>Mini Map</h2>
+                <div class="minimap-tabs">
+                    <button class="minimap-tab active" onclick="switchDimension('overworld')">Overworld</button>
+                    <button class="minimap-tab nether" onclick="switchDimension('nether')">Nether</button>
+                    <button class="minimap-tab end" onclick="switchDimension('end')">The End</button>
+                </div>
+                <div class="minimap-container">
+                    <canvas id="minimap" class="minimap-canvas"></canvas>
+                    <div class="minimap-legend">
+                        <div class="legend-item"><div class="legend-dot" style="background: #4ecca3;"></div> Player</div>
+                        <div class="legend-item"><div class="legend-dot" style="background: #f39c12;"></div> Spawn (0,0)</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card" style="grid-column: span 2;">
                 <h2>All Players (Ever Joined)</h2>
                 <div class="all-players-list">
                     <ul class="player-list" id="allPlayersList">
@@ -372,6 +463,135 @@
 
         document.getElementById('apiUrl').value = config.apiUrl;
         document.getElementById('adminKey').value = config.adminKey;
+
+        let playerPositions = [];
+        let currentDimension = 'overworld';
+
+        function switchDimension(dim) {
+            currentDimension = dim;
+            document.querySelectorAll('.minimap-tab').forEach(tab => tab.classList.remove('active'));
+            event.target.classList.add('active');
+            drawMinimap();
+        }
+
+        function drawMinimap() {
+            const canvas = document.getElementById('minimap');
+            const ctx = canvas.getContext('2d');
+
+            // Set canvas size
+            canvas.width = canvas.offsetWidth * 2;
+            canvas.height = canvas.offsetHeight * 2;
+            ctx.scale(2, 2);
+
+            const width = canvas.offsetWidth;
+            const height = canvas.offsetHeight;
+
+            // Background
+            const bgColors = {
+                overworld: '#1a3d1a',
+                nether: '#3d1a1a',
+                end: '#1a1a3d'
+            };
+            ctx.fillStyle = bgColors[currentDimension];
+            ctx.fillRect(0, 0, width, height);
+
+            // Grid
+            ctx.strokeStyle = 'rgba(255,255,255,0.1)';
+            ctx.lineWidth = 1;
+            const gridSize = 50;
+            for (let x = 0; x < width; x += gridSize) {
+                ctx.beginPath();
+                ctx.moveTo(x, 0);
+                ctx.lineTo(x, height);
+                ctx.stroke();
+            }
+            for (let y = 0; y < height; y += gridSize) {
+                ctx.beginPath();
+                ctx.moveTo(0, y);
+                ctx.lineTo(width, y);
+                ctx.stroke();
+            }
+
+            // Filter players by dimension
+            const dimPlayers = playerPositions.filter(p => p.dimension === currentDimension);
+
+            // Calculate bounds
+            let minX = -500, maxX = 500, minZ = -500, maxZ = 500;
+            if (dimPlayers.length > 0) {
+                const xs = dimPlayers.map(p => p.x);
+                const zs = dimPlayers.map(p => p.z);
+                minX = Math.min(...xs, -100) - 100;
+                maxX = Math.max(...xs, 100) + 100;
+                minZ = Math.min(...zs, -100) - 100;
+                maxZ = Math.max(...zs, 100) + 100;
+
+                // Make it square
+                const rangeX = maxX - minX;
+                const rangeZ = maxZ - minZ;
+                const maxRange = Math.max(rangeX, rangeZ, 200);
+                const centerX = (minX + maxX) / 2;
+                const centerZ = (minZ + maxZ) / 2;
+                minX = centerX - maxRange / 2;
+                maxX = centerX + maxRange / 2;
+                minZ = centerZ - maxRange / 2;
+                maxZ = centerZ + maxRange / 2;
+            }
+
+            function toCanvas(x, z) {
+                return {
+                    x: ((x - minX) / (maxX - minX)) * width,
+                    y: ((z - minZ) / (maxZ - minZ)) * height
+                };
+            }
+
+            // Draw spawn point (0,0)
+            const spawn = toCanvas(0, 0);
+            ctx.fillStyle = '#f39c12';
+            ctx.beginPath();
+            ctx.arc(spawn.x, spawn.y, 8, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.fillStyle = 'white';
+            ctx.font = '10px sans-serif';
+            ctx.fillText('0,0', spawn.x + 12, spawn.y + 4);
+
+            // Draw players
+            dimPlayers.forEach(player => {
+                const pos = toCanvas(player.x, player.z);
+
+                // Player dot
+                ctx.fillStyle = '#4ecca3';
+                ctx.beginPath();
+                ctx.arc(pos.x, pos.y, 10, 0, Math.PI * 2);
+                ctx.fill();
+
+                // Player name
+                ctx.fillStyle = 'white';
+                ctx.font = 'bold 11px sans-serif';
+                ctx.fillText(player.player, pos.x + 14, pos.y - 8);
+
+                // Coordinates
+                ctx.font = '9px sans-serif';
+                ctx.fillStyle = '#aaa';
+                ctx.fillText(`${player.x}, ${player.y}, ${player.z}`, pos.x + 14, pos.y + 6);
+            });
+
+            // No players message
+            if (dimPlayers.length === 0) {
+                ctx.fillStyle = 'rgba(255,255,255,0.5)';
+                ctx.font = '14px sans-serif';
+                ctx.textAlign = 'center';
+                ctx.fillText(`No players in ${currentDimension}`, width / 2, height / 2);
+                ctx.textAlign = 'left';
+            }
+
+            // Scale indicator
+            const scaleWidth = 100;
+            const scaleBlocks = Math.round((maxX - minX) * (scaleWidth / width));
+            ctx.fillStyle = 'rgba(255,255,255,0.7)';
+            ctx.fillRect(width - 120, height - 25, scaleWidth, 4);
+            ctx.font = '10px sans-serif';
+            ctx.fillText(`${scaleBlocks} blocks`, width - 120, height - 8);
+        }
 
         function saveConfig() {
             config.apiUrl = document.getElementById('apiUrl').value.replace(/\/$/, '');
@@ -425,18 +645,24 @@
             document.getElementById('playerCount').textContent = players.online || 0;
             document.getElementById('maxPlayers').textContent = players.max || 10;
 
+            // Get all online player positions
+            const positionsData = await fetchApi('/api/positions');
+            playerPositions = positionsData.positions || [];
+
             // Update player list
             const playerList = document.getElementById('playerList');
             if (players.players && players.players.length > 0) {
                 playerList.innerHTML = '';
                 for (const player of players.players) {
-                    const pos = await fetchApi('/api/player/position', { name: player });
+                    const pos = playerPositions.find(p => p.player === player) || {};
                     const li = document.createElement('li');
+                    const dimClass = pos.dimension ? `dim-${pos.dimension}` : '';
+                    const dimName = pos.dimension ? pos.dimension.charAt(0).toUpperCase() + pos.dimension.slice(1) : '';
                     li.innerHTML = `
                         <div class="player-info">
                             <img class="player-avatar" src="https://mc-heads.net/avatar/${player}/40" alt="${player}">
                             <div>
-                                <div class="player-name">${player}</div>
+                                <div class="player-name">${player}${dimName ? `<span class="dimension-badge ${dimClass}">${dimName}</span>` : ''}</div>
                                 <div class="player-coords">${pos.x !== undefined ? `X: ${pos.x} Y: ${pos.y} Z: ${pos.z}` : 'Position unavailable'}</div>
                             </div>
                         </div>
@@ -447,6 +673,9 @@
             } else {
                 playerList.innerHTML = '<li class="empty-state">No players online</li>';
             }
+
+            // Update minimap
+            drawMinimap();
 
             // Get ban list
             const banlist = await fetchApi('/api/banlist');
