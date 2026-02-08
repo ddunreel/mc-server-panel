@@ -720,17 +720,20 @@
                         const bansPart = response.substring(colonIndex + 1).trim();
                         if (bansPart) {
                             // Split multiple bans (they're separated by newlines or commas)
-                            const bans = bansPart.split(/[\n,]/).map(b => b.trim()).filter(b => b && b.includes('banned'));
-                            if (bans.length > 0) {
-                                banListEl.innerHTML = bans.map(ban => `
+                            let bans = bansPart.split(/[\n,]/).map(b => b.trim()).filter(b => b && b.includes('banned'));
+                            if (bans.length === 0) {
+                                bans = [bansPart]; // Single ban
+                            }
+                            banListEl.innerHTML = bans.map(ban => {
+                                // Extract player name (first word before " was banned")
+                                const playerName = ban.split(' was banned')[0].trim();
+                                return `
                                     <div class="ban-item">
                                         <span>${ban}</span>
+                                        <button class="btn btn-success" style="margin-left: 10px; padding: 4px 10px;" onclick="quickUnban('${playerName}')">Unban</button>
                                     </div>
-                                `).join('');
-                            } else {
-                                // Single ban without separator
-                                banListEl.innerHTML = `<div class="ban-item"><span>${bansPart}</span></div>`;
-                            }
+                                `;
+                            }).join('');
                         } else {
                             banListEl.innerHTML = '<div class="empty-state">No banned players</div>';
                         }
@@ -773,6 +776,23 @@
 
         function quickBan(player) {
             document.getElementById('banPlayerName').value = player;
+        }
+
+        async function quickUnban(player) {
+            if (!config.adminKey) {
+                showAlert('Please enter admin key in configuration', 'error');
+                return;
+            }
+            const result = await fetchApi('/api/unban', {
+                key: config.adminKey,
+                player: player
+            });
+            if (result.success) {
+                showAlert(`${player} has been unbanned`, 'success');
+                refreshData();
+            } else {
+                showAlert(result.error || 'Failed to unban player', 'error');
+            }
         }
 
         async function banPlayer() {
