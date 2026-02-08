@@ -176,6 +176,28 @@
             padding: 40px;
             color: #666;
         }
+        .status-badge {
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-size: 0.75em;
+            font-weight: bold;
+        }
+        .status-online {
+            background: #4ecca3;
+            color: #1a1a2e;
+        }
+        .status-offline {
+            background: rgba(255,255,255,0.2);
+            color: #888;
+        }
+        .all-players-list {
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        .player-last-seen {
+            font-size: 0.8em;
+            color: #666;
+        }
         .config-section {
             background: rgba(255,255,255,0.03);
             padding: 20px;
@@ -324,6 +346,15 @@
                 </div>
                 <div id="lookupResult"></div>
             </div>
+
+            <div class="card" style="grid-column: span 2;">
+                <h2>All Players (Ever Joined)</h2>
+                <div class="all-players-list">
+                    <ul class="player-list" id="allPlayersList">
+                        <li class="empty-state">Loading...</li>
+                    </ul>
+                </div>
+            </div>
         </div>
     </div>
 
@@ -427,6 +458,34 @@
                 } else {
                     banListEl.innerHTML = '<div class="empty-state">No banned players</div>';
                 }
+            }
+
+            // Get all players who ever joined
+            const allPlayers = await fetchApi('/api/allplayers');
+            const allPlayersList = document.getElementById('allPlayersList');
+            if (allPlayers.players && allPlayers.players.length > 0) {
+                allPlayersList.innerHTML = '';
+                for (const player of allPlayers.players) {
+                    const li = document.createElement('li');
+                    const statusClass = player.online ? 'status-online' : 'status-offline';
+                    const statusText = player.online ? 'ONLINE' : 'OFFLINE';
+                    li.innerHTML = `
+                        <div class="player-info">
+                            <img class="player-avatar" src="https://mc-heads.net/avatar/${player.name}/40" alt="${player.name}">
+                            <div>
+                                <div class="player-name">${player.name}</div>
+                                <div class="player-last-seen">Last seen: ${player.lastSeen || 'Unknown'}</div>
+                            </div>
+                        </div>
+                        <div>
+                            <span class="status-badge ${statusClass}">${statusText}</span>
+                            <button class="btn btn-danger" style="margin-left: 10px;" onclick="quickBan('${player.name}')">Ban</button>
+                        </div>
+                    `;
+                    allPlayersList.appendChild(li);
+                }
+            } else {
+                allPlayersList.innerHTML = '<li class="empty-state">No players found</li>';
             }
         }
 
