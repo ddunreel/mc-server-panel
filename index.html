@@ -710,15 +710,28 @@
             const banlist = await fetchApi('/api/banlist');
             const banListEl = document.getElementById('banList');
             if (banlist.response) {
-                const bans = banlist.response.split('\n').filter(line => line.trim() && !line.includes('There are'));
-                if (bans.length > 0) {
-                    banListEl.innerHTML = bans.map(ban => `
-                        <div class="ban-item">
-                            <span>${ban}</span>
-                        </div>
-                    `).join('');
-                } else {
+                const response = banlist.response;
+                if (response.includes('no bans') || response.includes('0 ban')) {
                     banListEl.innerHTML = '<div class="empty-state">No banned players</div>';
+                } else {
+                    // Parse "There are X ban(s):player1 was banned..., player2 was banned..."
+                    let bansPart = response;
+                    if (response.includes('ban(s):')) {
+                        bansPart = response.split('ban(s):')[1] || '';
+                    } else if (response.includes('bans:')) {
+                        bansPart = response.split('bans:')[1] || '';
+                    }
+                    // Split by common patterns
+                    const bans = bansPart.split(/,(?=\s*\w+\s+was\s+banned)/).map(b => b.trim()).filter(b => b);
+                    if (bans.length > 0) {
+                        banListEl.innerHTML = bans.map(ban => `
+                            <div class="ban-item">
+                                <span>${ban}</span>
+                            </div>
+                        `).join('');
+                    } else {
+                        banListEl.innerHTML = '<div class="empty-state">No banned players</div>';
+                    }
                 }
             }
 
