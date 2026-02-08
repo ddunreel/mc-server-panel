@@ -286,6 +286,10 @@
                 <div class="label">Max Players</div>
                 <div class="value" id="maxPlayers">-</div>
             </div>
+            <div class="status-item">
+                <div class="label">Auto Refresh</div>
+                <div class="value" id="refreshTimer">10s</div>
+            </div>
         </div>
 
         <div class="card config-section">
@@ -588,11 +592,24 @@
             }
         }
 
+        // Auto refresh timer
+        let refreshInterval = 10; // seconds
+        let countdown = refreshInterval;
+
+        function updateTimer() {
+            document.getElementById('refreshTimer').textContent = countdown + 's';
+            countdown--;
+            if (countdown < 0) {
+                countdown = refreshInterval;
+                refreshData();
+            }
+        }
+
         // Initial load
         refreshData();
 
-        // Auto refresh every 30 seconds
-        setInterval(refreshData, 30000);
+        // Start countdown timer
+        setInterval(updateTimer, 1000);
     </script>
 </body>
 </html>
