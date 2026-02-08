@@ -711,27 +711,34 @@
             const banListEl = document.getElementById('banList');
             if (banlist.response) {
                 const response = banlist.response;
-                if (response.includes('no bans') || response.includes('0 ban')) {
+                if (response.toLowerCase().includes('no bans') || response.includes('0 ban')) {
                     banListEl.innerHTML = '<div class="empty-state">No banned players</div>';
-                } else {
-                    // Parse "There are X ban(s):player1 was banned..., player2 was banned..."
-                    let bansPart = response;
-                    if (response.includes('ban(s):')) {
-                        bansPart = response.split('ban(s):')[1] || '';
-                    } else if (response.includes('bans:')) {
-                        bansPart = response.split('bans:')[1] || '';
-                    }
-                    // Split by common patterns
-                    const bans = bansPart.split(/,(?=\s*\w+\s+was\s+banned)/).map(b => b.trim()).filter(b => b);
-                    if (bans.length > 0) {
-                        banListEl.innerHTML = bans.map(ban => `
-                            <div class="ban-item">
-                                <span>${ban}</span>
-                            </div>
-                        `).join('');
+                } else if (response.includes('ban')) {
+                    // Extract everything after the colon following "ban(s)" or "bans"
+                    const colonIndex = response.indexOf(':');
+                    if (colonIndex > -1) {
+                        const bansPart = response.substring(colonIndex + 1).trim();
+                        if (bansPart) {
+                            // Split multiple bans (they're separated by newlines or commas)
+                            const bans = bansPart.split(/[\n,]/).map(b => b.trim()).filter(b => b && b.includes('banned'));
+                            if (bans.length > 0) {
+                                banListEl.innerHTML = bans.map(ban => `
+                                    <div class="ban-item">
+                                        <span>${ban}</span>
+                                    </div>
+                                `).join('');
+                            } else {
+                                // Single ban without separator
+                                banListEl.innerHTML = `<div class="ban-item"><span>${bansPart}</span></div>`;
+                            }
+                        } else {
+                            banListEl.innerHTML = '<div class="empty-state">No banned players</div>';
+                        }
                     } else {
                         banListEl.innerHTML = '<div class="empty-state">No banned players</div>';
                     }
+                } else {
+                    banListEl.innerHTML = '<div class="empty-state">No banned players</div>';
                 }
             }
 
