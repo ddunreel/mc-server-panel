@@ -739,16 +739,22 @@
                         const bansPart = response.substring(colonIndex + 1).trim();
                         if (bansPart) {
                             // Bans are concatenated like: "Player1 was banned by X: ReasonPlayer2 was banned by Y: Reason"
-                            // Split by looking for player names before " was banned"
-                            const bans = [];
-                            const regex = /(\S+)\s+was banned by\s+([^:]+):\s*([^]*?)(?=\S+\s+was banned|$)/g;
-                            let match;
-                            while ((match = regex.exec(bansPart)) !== null) {
-                                const playerName = match[1];
-                                const bannedBy = match[2].trim();
-                                const reason = match[3].trim();
-                                bans.push({ playerName, bannedBy, reason });
-                            }
+                            // Insert delimiter before each "PlayerName was banned" pattern
+                            const withDelimiter = bansPart.replace(/([A-Za-z0-9_]+)\s+was banned by/g, '|||$1 was banned by');
+                            const banStrings = withDelimiter.split('|||').filter(s => s.trim());
+
+                            const bans = banStrings.map(banStr => {
+                                const match = banStr.match(/^(\S+)\s+was banned by\s+([^:]+):\s*(.*)$/);
+                                if (match) {
+                                    return {
+                                        playerName: match[1],
+                                        bannedBy: match[2].trim(),
+                                        reason: match[3].trim() || 'No reason'
+                                    };
+                                }
+                                return null;
+                            }).filter(b => b);
+
                             if (bans.length > 0) {
                                 banListEl.innerHTML = bans.map(ban => `
                                     <div class="ban-item">
@@ -756,7 +762,7 @@
                                             <img class="player-avatar" src="https://mc-heads.net/avatar/${ban.playerName}/40" alt="${ban.playerName}">
                                             <div>
                                                 <div class="player-name">${ban.playerName}</div>
-                                                <div style="font-size: 0.85em; color: #e74c3c;">${ban.reason || 'No reason'}</div>
+                                                <div style="font-size: 0.85em; color: #e74c3c;">${ban.reason}</div>
                                             </div>
                                         </div>
                                         <button class="btn btn-success" onclick="quickUnban('${ban.playerName}')">Unban</button>
