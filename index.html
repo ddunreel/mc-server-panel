@@ -719,21 +719,27 @@
                     if (colonIndex > -1) {
                         const bansPart = response.substring(colonIndex + 1).trim();
                         if (bansPart) {
-                            // Split multiple bans (they're separated by newlines or commas)
-                            let bans = bansPart.split(/[\n,]/).map(b => b.trim()).filter(b => b && b.includes('banned'));
-                            if (bans.length === 0) {
-                                bans = [bansPart]; // Single ban
+                            // Bans are concatenated like: "Player1 was banned by X: ReasonPlayer2 was banned by Y: Reason"
+                            // Split by looking for player names before " was banned"
+                            const bans = [];
+                            const regex = /(\S+)\s+was banned by\s+([^:]+):\s*([^]*?)(?=\S+\s+was banned|$)/g;
+                            let match;
+                            while ((match = regex.exec(bansPart)) !== null) {
+                                const playerName = match[1];
+                                const bannedBy = match[2].trim();
+                                const reason = match[3].trim();
+                                bans.push({ playerName, bannedBy, reason });
                             }
-                            banListEl.innerHTML = bans.map(ban => {
-                                // Extract player name (first word before " was banned")
-                                const playerName = ban.split(' was banned')[0].trim();
-                                return `
+                            if (bans.length > 0) {
+                                banListEl.innerHTML = bans.map(ban => `
                                     <div class="ban-item">
-                                        <span>${ban}</span>
-                                        <button class="btn btn-success" style="margin-left: 10px; padding: 4px 10px;" onclick="quickUnban('${playerName}')">Unban</button>
+                                        <span><strong>${ban.playerName}</strong> - ${ban.reason || 'No reason'}</span>
+                                        <button class="btn btn-success" style="margin-left: 10px; padding: 4px 10px;" onclick="quickUnban('${ban.playerName}')">Unban</button>
                                     </div>
-                                `;
-                            }).join('');
+                                `).join('');
+                            } else {
+                                banListEl.innerHTML = '<div class="empty-state">No banned players</div>';
+                            }
                         } else {
                             banListEl.innerHTML = '<div class="empty-state">No banned players</div>';
                         }
