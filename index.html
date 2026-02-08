@@ -159,8 +159,23 @@
             outline: 2px solid #4ecca3;
         }
         .ban-list {
-            max-height: 300px;
+            max-height: 250px;
             overflow-y: auto;
+            padding-right: 5px;
+        }
+        .ban-list::-webkit-scrollbar {
+            width: 8px;
+        }
+        .ban-list::-webkit-scrollbar-track {
+            background: rgba(255,255,255,0.1);
+            border-radius: 4px;
+        }
+        .ban-list::-webkit-scrollbar-thumb {
+            background: rgba(231, 76, 60, 0.5);
+            border-radius: 4px;
+        }
+        .ban-list::-webkit-scrollbar-thumb:hover {
+            background: rgba(231, 76, 60, 0.7);
         }
         .ban-item {
             display: flex;
