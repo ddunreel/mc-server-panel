@@ -826,8 +826,7 @@
             });
             if (result.success) {
                 showAlert(`${player} has been unbanned`, 'success');
-                // Wait a moment for server to process, then refresh
-                setTimeout(() => refreshData(), 500);
+                refreshData();
             } else {
                 showAlert(result.error || 'Failed to unban player', 'error');
             }
